@@ -1,0 +1,11 @@
+Tilt Trail is a planned offline iPhone tilt-labyrinth game. Guide a tactile marble through original, handcrafted obstacle courses with touch drag or optional calibrated device tilt.
+
+Features planned for development:
+- Handcrafted courses with hazards, clear checkpoints, and finish lines.
+- Choice between direct touch steering and opt-in device tilt with neutral calibration.
+- Local time trials and personal bests stored entirely on your device.
+- Transparent checkpoint restarts so you can master difficult segments.
+- Private by design: no accounts, no cloud sync, no tracking, and no ads.
+- JSON export and import for full ownership of your records.
+
+Tilt Trail is built specifically for iPhone in native Swift.
