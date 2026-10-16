@@ -26,7 +26,7 @@ No Android, native iPad support, Flutter, React Native, Expo, Kotlin Multiplatfo
 Course state, control preference and times live in app container; no network calls (`network_allowlist: []`), trackers, login or analytics. JSON export/import through file picker with validation and overwrite confirmation; delete-all offered. Core Motion access is opt-in only while playing and requires device motion usage text if platform prompts; touch input always works. No notification permission. VoiceOver-labelled course selection, checkpoint/retry controls, Dynamic Type menus, large touch targets, contrast and reduce-motion support; gameplay offers touch alternative. No health claims.
 
 ## Platform / status
-Documentation-only scaffold; game, icon, Xcode target, CI and publish Action not built. Pin iOS 26 SDK or newer, Xcode 26.0.1 (17A400), Swift 6, deployment iOS 26.0. Native Swift/SwiftUI/UIKit/SpriteKit only. Every app config must set `TARGETED_DEVICE_FAMILY = 1`; Apple CI must confirm built `UIDeviceFamily = [1]`. `PRODUCT_BUNDLE_IDENTIFIER = com.infinityball.tilttrail` in all targets and signing; ASC registration: CREATED. `toolchain.json` pins planning contract; no Linux claim of Apple compilation.
+Native shell scaffold: Xcode target, pure Swift layout seam and pinned CI added; game, icon and publish Action not built. Pin iOS 26 SDK or newer, Xcode 26.0.1 (17A400), Swift 6, deployment iOS 26.0. Native Swift/SwiftUI/UIKit/SpriteKit only. Every app config must set `TARGETED_DEVICE_FAMILY = 1`; Apple CI must confirm built `UIDeviceFamily = [1]`. `PRODUCT_BUNDLE_IDENTIFIER = com.infinityball.tilttrail` in all targets and signing; ASC registration: CREATED. `toolchain.json` pins planning contract; no Linux claim of Apple compilation.
 
 ## Milestones
 1. Xcode skeleton, pinned CI and `TiltWorkspaceLayout`.
@@ -39,6 +39,6 @@ Documentation-only scaffold; game, icon, Xcode target, CI and publish Action not
 `AppStore/description.txt` contains planned-feature copy; review against real features before submission. Real `AppStore/icon.png` must be generated with `hermes-image-gen` after inspecting repo and description, saved square, opaque, edge-to-edge, without text, border or baked corner radius, and wired into Xcode app-icon catalog. No placeholder. Publish issue must port proven `rwrife/cook-console` `.github/workflows/release.yml`: `v*` tag or manual dispatch on macos-26; iOS 26+ SDK enforcement, signed IPA archive/export, TestFlight upload via App Store Connect API, ASC processing poll, GitHub release. Secrets already set: `ASC_KEY_ID`, `ASC_ISSUER_ID`, `ASC_KEY_P8`, `ASC_TEAM_ID` (names only; never log values). TestFlight upload ≠ App Store approval.
 
 ## Development quickstart
-On macOS with Xcode 26.0.1 (17A400), after issue #1 creates Xcode project, run `xcodebuild -project TiltTrail.xcodeproj -scheme TiltTrail -destination 'generic/platform=iOS Simulator' build`. No runnable app exists at scaffold stage.
+On macOS with Xcode 26.0.1 (17A400), run `swift test --package-path Packages/TiltTrailKit` then `xcodebuild -project TiltTrail.xcodeproj -scheme TiltTrail -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO build`. This builds a placeholder, not a playable game.
 
 MIT license; see LICENSE. See PLAN.md for architecture and test gates.
