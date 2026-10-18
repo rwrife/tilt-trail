@@ -32,7 +32,7 @@ final class CourseScene: SKScene {
                 else if course.checkpoints.contains(cell) { color = .systemOrange }
                 else { continue }
                 let tile = SKShapeNode(rectOf: CGSize(width: 0.84, height: 0.84), cornerRadius: 0.12)
-                tile.position = CGPoint(x: x + 0.5, y: y + 0.5)
+                tile.position = CGPoint(x: CGFloat(x) + 0.5, y: CGFloat(y) + 0.5)
                 tile.fillColor = color
                 tile.strokeColor = .clear
                 addChild(tile)
