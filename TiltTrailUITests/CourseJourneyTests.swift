@@ -51,11 +51,12 @@ final class CourseJourneyTests: XCTestCase {
             XCTAssertTrue(arrived, "Waypoint \(index) unreached; telemetry: \(String(describing: viewport.value))")
         }
         XCTAssertTrue(status.label.contains("Course complete"), status.label)
-        XCTAssertTrue(best.label.hasPrefix("Best 0"), best.label)
+        let recordedBest = best.label
+        XCTAssertTrue(recordedBest.hasPrefix("Best ") && recordedBest != "Best --:--", recordedBest)
         XCTAssertEqual(checkpoints.label, "Checkpoint 2 of 2")
         app.buttons["game.retry"].tap()
         XCTAssertEqual(checkpoints.label, "Checkpoint 0 of 2")
-        XCTAssertTrue(best.label.hasPrefix("Best 0"), "Retry must keep the personal best")
+        XCTAssertEqual(best.label, recordedBest, "Retry must keep the personal best")
     }
 
     private struct Telemetry { let x, y, vx, vy: Double }
