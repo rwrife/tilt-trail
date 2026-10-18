@@ -32,51 +32,25 @@ jobs:
   ios-build:
     runs-on: macos-26
     timeout-minutes: 45
+    env:
+      TARGET_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.pull_request.head.sha || github.sha }}
-      - name: Select exact Xcode pin
+          ref: ${{ env.TARGET_SHA }}
+          fetch-depth: 1
+          persist-credentials: false
+      - name: Run pinned simulator validation
+        timeout-minutes: 38
         run: |
           set -euo pipefail
-          found=""
-          for app in /Applications/Xcode*.app; do
-            [ -d "$app" ] || continue
-            dev="$app/Contents/Developer"
-            version=$(DEVELOPER_DIR="$dev" xcodebuild -version) || continue
-            if [ "$(printf '%s\n' "$version" | sed -n '1p')" = "Xcode 26.0.1" ] && [ "$(printf '%s\n' "$version" | sed -n '2p')" = "Build version 17A400" ]; then
-              found="$dev"
-              break
-            fi
-          done
-          [ -n "$found" ] || { echo '::error::Exact Xcode 26.0.1 (17A400) unavailable'; exit 1; }
-          echo "DEVELOPER_DIR=$found" >> "$GITHUB_ENV"
-          DEVELOPER_DIR="$found" xcodebuild -version
-          sdk=$(DEVELOPER_DIR="$found" xcrun --sdk iphonesimulator --show-sdk-version)
-          [[ "$sdk" == 26.* ]] || { echo "::error::iOS 26+ simulator SDK missing ($sdk)"; exit 1; }
-          echo "Simulator SDK $sdk"
-      - name: Ensure exact simulator runtime
-        timeout-minutes: 18
-        run: |
-          set -euo pipefail
-          sdk=$(xcrun --sdk iphonesimulator --show-sdk-version)
-          required="com.apple.CoreSimulator.SimRuntime.iOS-${sdk//./-}"
-          if ! xcrun simctl list runtimes -j | python3 -c 'import json,sys; required=sys.argv[1]; sys.exit(0 if any(r.get("identifier") == required and r.get("isAvailable") for r in json.load(sys.stdin)["runtimes"]) else 1)' "$required"; then
-            xcodebuild -downloadPlatform iOS -architectureVariant universal
-          fi
-          xcrun simctl list runtimes -j | python3 -c 'import json,sys; required=sys.argv[1]; assert any(r.get("identifier") == required and r.get("isAvailable") for r in json.load(sys.stdin)["runtimes"]), required' "$required"
-      - name: Source policy and Swift package tests
-        run: |
-          python3 scripts/check_project.py
-          bash scripts/check_zero_network.sh
-          swift test --package-path Packages/TiltTrailKit
-      - name: Build native iPhone app
-        run: |
-          set -euo pipefail
-          xcodebuild -project TiltTrail.xcodeproj -scheme TiltTrail -configuration Release -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath DerivedData CODE_SIGNING_ALLOWED=NO build
-          app="DerivedData/Build/Products/Release-iphonesimulator/TiltTrail.app"
-          [ -f "$app/Info.plist" ] || { echo '::error::built Info.plist missing'; exit 1; }
-          plutil -extract UIDeviceFamily json -o - "$app/Info.plist" | python3 -c 'import json,sys; assert json.load(sys.stdin) == [1]'
-          bundle=$(plutil -extract CFBundleIdentifier raw -o - "$app/Info.plist")
-          [ "$bundle" = 'com.infinityball.tilttrail' ] || { echo "::error::Wrong built bundle ID $bundle"; exit 1; }
-          echo 'Built UIDeviceFamily == [1] and bundle ID: PASS'
+          bash -n Scripts/ci.sh
+          Scripts/ci.sh "$TARGET_SHA"
+      - name: Upload results and provenance
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-ci-${{ env.TARGET_SHA }}
+          path: build/ci-artifacts
+          if-no-files-found: warn
+          retention-days: 14

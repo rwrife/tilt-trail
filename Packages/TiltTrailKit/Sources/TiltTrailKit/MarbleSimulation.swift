@@ -104,8 +104,7 @@ public struct MarbleSimulation: Sendable {
         let cell = Cell(Int(position.x.rounded(.down)), Int(position.y.rounded(.down)))
         if course.pits.contains(cell) {
             falls += 1
-            position = Self.center(reached == 0 ? course.start : course.checkpoints[reached - 1])
-            velocity = Point(0, 0)
+            restartAtCheckpoint()
             return
         }
         if reached < course.checkpoints.count,
@@ -114,6 +113,13 @@ public struct MarbleSimulation: Sendable {
             finished = true
             velocity = Point(0, 0)
         }
+    }
+
+    /// Returns the marble to the last reached checkpoint (or start); elapsed time is kept.
+    public mutating func restartAtCheckpoint() {
+        guard !finished else { return }
+        position = Self.center(reached == 0 ? course.start : course.checkpoints[reached - 1])
+        velocity = Point(0, 0)
     }
 
     /// Accumulates wall-clock frames into fixed steps; reject bad/oversized frames.
