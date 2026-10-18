@@ -20,6 +20,9 @@
                ReferencedContainer = "container:TiltTrail.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
+         <BuildActionEntry buildForTesting="YES" buildForRunning="NO" buildForProfiling="NO" buildForArchiving="NO" buildForAnalyzing="NO">
+            <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="AA00000000000000000000BB" BuildableName="TiltTrailUITests.xctest" BlueprintName="TiltTrailUITests" ReferencedContainer="container:TiltTrail.xcodeproj"/>
+         </BuildActionEntry>
       </BuildActionEntries>
    </BuildAction>
    <TestAction
@@ -28,6 +31,9 @@
       selectedLauncherIdentifier = "Xcode.DebuggerFoundation.Launcher.LLDB"
       shouldUseLaunchSchemeArgsEnv = "YES">
       <Testables>
+         <TestableReference skipped="NO" parallelizable="NO">
+            <BuildableReference BuildableIdentifier="primary" BlueprintIdentifier="AA00000000000000000000BB" BuildableName="TiltTrailUITests.xctest" BlueprintName="TiltTrailUITests" ReferencedContainer="container:TiltTrail.xcodeproj"/>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

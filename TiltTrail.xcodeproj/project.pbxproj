@@ -8,12 +8,19 @@
 
 /* Begin PBXBuildFile section */
 		AA00000000000000000000B0 /* TiltTrailKit in TiltTrailKit */ = {isa = PBXBuildFile; productRef = AA00000000000000000000AF /* TiltTrailKit */; };
+		AA00000000000000000000B5 /* CourseJourneyTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA00000000000000000000B6 /* CourseJourneyTests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		AA00000000000000000000B1 /* TiltTrail.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TiltTrail.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		AA00000000000000000000B3 /* toolchain.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = toolchain.json; sourceTree = "<group>"; };
+		AA00000000000000000000B6 /* CourseJourneyTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CourseJourneyTests.swift; sourceTree = "<group>"; };
+		AA00000000000000000000B7 /* TiltTrailUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = TiltTrailUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXContainerItemProxy section */
+		AA00000000000000000000B8 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = AA00000000000000000000A1 /* Project object */; proxyType = 1; remoteGlobalIDString = AA00000000000000000000A2; remoteInfo = TiltTrail; };
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		AA00000000000000000000AC /* TiltTrail */ = {
@@ -36,6 +43,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA00000000000000000000B9 /* UI Test Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -44,6 +52,7 @@
 			children = (
 				AA00000000000000000000AC /* TiltTrail */,
 				AA00000000000000000000B3 /* toolchain.json */,
+				AA00000000000000000000BA /* TiltTrailUITests */,
 				AA00000000000000000000B2 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -52,10 +61,12 @@
 			isa = PBXGroup;
 			children = (
 				AA00000000000000000000B1 /* TiltTrail.app */,
+				AA00000000000000000000B7 /* TiltTrailUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
+		AA00000000000000000000BA /* TiltTrailUITests */ = {isa = PBXGroup; children = (AA00000000000000000000B6 /* CourseJourneyTests.swift */,); path = TiltTrailUITests; sourceTree = "<group>"; };
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -81,6 +92,21 @@
 			productName = TiltTrail;
 			productReference = AA00000000000000000000B1 /* TiltTrail.app */;
 			productType = "com.apple.product-type.application";
+		};
+		AA00000000000000000000BB /* TiltTrailUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = AA00000000000000000000BC /* Build configuration list for PBXNativeTarget "TiltTrailUITests" */;
+			buildPhases = (
+				AA00000000000000000000BD /* UI Test Sources */,
+				AA00000000000000000000B9 /* UI Test Frameworks */,
+				AA00000000000000000000BF /* UI Test Resources */,
+			);
+			buildRules = ();
+			dependencies = (AA00000000000000000000BE /* PBXTargetDependency */,);
+			name = TiltTrailUITests;
+			productName = TiltTrailUITests;
+			productReference = AA00000000000000000000B7 /* TiltTrailUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
 		};
 /* End PBXNativeTarget section */
 
@@ -114,6 +140,7 @@
 			projectRoot = "";
 			targets = (
 				AA00000000000000000000A2 /* TiltTrail */,
+				AA00000000000000000000BB /* TiltTrailUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -126,6 +153,7 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA00000000000000000000BF /* UI Test Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0;};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -136,9 +164,16 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AA00000000000000000000BD /* UI Test Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (AA00000000000000000000B5 /* CourseJourneyTests.swift in Sources */,); runOnlyForDeploymentPostprocessing = 0;};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXTargetDependency section */
+		AA00000000000000000000BE /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = AA00000000000000000000A2 /* TiltTrail */; targetProxy = AA00000000000000000000B8 /* PBXContainerItemProxy */;};
+/* End PBXTargetDependency section */
+
 /* Begin XCBuildConfiguration section */
+		AA00000000000000000000C0 /* UI Test Debug */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGNING_ALLOWED = NO; GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 26.0; PRODUCT_BUNDLE_IDENTIFIER = com.infinityball.tilttrail; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = iphoneos; SWIFT_VERSION = 6.0; TARGETED_DEVICE_FAMILY = 1; TEST_TARGET_NAME = TiltTrail; }; name = Debug;};
+		AA00000000000000000000C1 /* UI Test Release */ = {isa = XCBuildConfiguration; buildSettings = {CODE_SIGNING_ALLOWED = NO; GENERATE_INFOPLIST_FILE = YES; IPHONEOS_DEPLOYMENT_TARGET = 26.0; PRODUCT_BUNDLE_IDENTIFIER = com.infinityball.tilttrail; PRODUCT_NAME = "$(TARGET_NAME)"; SDKROOT = iphoneos; SWIFT_VERSION = 6.0; TARGETED_DEVICE_FAMILY = 1; TEST_TARGET_NAME = TiltTrail; }; name = Release;};
 		AA00000000000000000000A5 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -292,6 +327,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		AA00000000000000000000BC /* Build configuration list for PBXNativeTarget "TiltTrailUITests" */ = {isa = XCConfigurationList; buildConfigurations = (AA00000000000000000000C0 /* UI Test Debug */, AA00000000000000000000C1 /* UI Test Release */,); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release;};
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */

@@ -10,7 +10,7 @@ Data model: course ID and definition version, checkpoint reached, best elapsed m
 ## Milestones and dependency order
 1. Xcode project + SwiftPM domain, pinned macos-26 CI and `TiltWorkspaceLayout` seam. Source device-family gate and actual built Info.plist assertion.
 2. Pure Swift fixed-step simulation: steering, walls, pits, checkpoint and finish; three fixture courses and deterministic replay tests.
-3. SpriteKit view + SwiftUI course chooser: touch play, pause/retry, visible clock and personal-best save.
+3. DONE (this slice): SpriteKit course + SwiftUI controls; touch play, pause/retry/checkpoint, visible clock and in-memory personal best (save lands in #6).
 4. Opt-in Core Motion calibration/sensitivity; graceful permission/sensor failure fallback to touch. VoiceOver labels, 44pt controls, contrast, reduced motion, Dynamic Type menus.
 5. JSON export/import/delete, storage tests. Review `AppStore/description.txt` against implementation; generate real `AppStore/icon.png` with `hermes-image-gen`, wire same art into Xcode catalog. No placeholder.
 6. Pinned native build/UI tests, release Action and actual TestFlight evidence.
