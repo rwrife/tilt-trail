@@ -71,7 +71,8 @@ final class CourseScene: SKScene {
         } else {
             input = Point(0, 0)
         }
-        game.advance(seconds: currentTime - lastFrame, steering: input)
+        game.advance(seconds: currentTime - lastFrame,
+                     steering: game.steering(touch: input, touchActive: fingerStart != nil))
         sync()
     }
 
