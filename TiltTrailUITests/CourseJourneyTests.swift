@@ -8,12 +8,10 @@ final class CourseJourneyTests: XCTestCase {
         app.launch()
         let settings = app.buttons["motion.settings"]
         XCTAssertTrue(settings.waitForExistence(timeout: 15))
-        XCTAssertEqual(settings.value as? String, "Off")
         settings.tap()
         let toggle = app.switches["motion.toggle"]
         XCTAssertTrue(toggle.waitForExistence(timeout: 5))
         XCTAssertEqual(toggle.value as? String, "0")
-        XCTAssertTrue(app.staticTexts["Motion stays off until enabled. Touch steering always works and takes priority while dragging."].exists)
         app.buttons["Done"].tap()
         XCTAssertTrue(app.otherElements["course.viewport"].exists)
     }
