@@ -23,8 +23,8 @@ public enum ClockFormat {
     }
 }
 
-/// One play-through of a course: pause, retry, checkpoint restart and in-memory personal bests.
-/// Persistence of `bests` belongs to issue #6.
+/// One play-through of a course: pause, retry, checkpoint restart and personal bests.
+/// App persists `bests` when a run completes.
 public struct PlaySession: Sendable {
     public let course: Course
     public private(set) var simulation: MarbleSimulation

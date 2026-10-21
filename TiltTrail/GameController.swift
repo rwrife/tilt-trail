@@ -13,12 +13,64 @@ final class GameController {
     private(set) var motionConfig = TiltInputMapper.Configuration.default
     private(set) var isCalibrationReady = false
     private let motion = CMMotionManager()
+    private let store: LocalSaveStore
     private var isOnScreen = false
+    private(set) var storageError: String?
 
-    init(course: Course) {
+    init(course: Course, store: LocalSaveStore = LocalSaveStore(
+        url: FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("TiltTrail/save.json"))) {
+        self.store = store
+        let saved: LocalSave
+        do { saved = try store.load() }
+        catch {
+            saved = LocalSave()
+            storageError = "Could not read local save: \(error.localizedDescription). Existing file was not changed."
+        }
+        session = PlaySession(course: course, bests: saved.bests)
+        motionConfig = .init(isMotionEnabled: saved.motionEnabled, sensitivity: saved.sensitivity)
+        scene = CourseScene(course: course)
+        scene.game = self
+    }
+
+    var exportData: Data? {
+        guard storageError == nil else { return nil }
+        return try? snapshot.encoded()
+    }
+
+    private var snapshot: LocalSave {
+        LocalSave(bests: session.bests, motionEnabled: motionConfig.isMotionEnabled,
+                  sensitivity: motionConfig.sensitivity)
+    }
+
+    private func persist() {
+        // Never overwrite unreadable or future-version data implicitly.
+        guard storageError == nil else { return }
+        do { try store.write(snapshot) }
+        catch { storageError = "Could not save changes: \(error.localizedDescription)" }
+    }
+
+    func importSave(_ data: Data) throws {
+        let imported = try LocalSave.decode(data)
+        try store.write(imported)
+        session = PlaySession(course: course, bests: imported.bests)
+        scene = CourseScene(course: course)
+        scene.game = self
+        motionConfig = .init(isMotionEnabled: imported.motionEnabled, sensitivity: imported.sensitivity)
+        isCalibrationReady = false
+        storageError = nil
+        updateMotionSampling()
+    }
+
+    func deleteAll() throws {
+        try store.delete()
         session = PlaySession(course: course)
         scene = CourseScene(course: course)
         scene.game = self
+        motionConfig = .default
+        isCalibrationReady = false
+        storageError = nil
+        updateMotionSampling()
     }
 
     var isSensorAvailable: Bool { motion.isDeviceMotionAvailable }
@@ -42,11 +94,13 @@ final class GameController {
     func setMotionEnabled(_ enabled: Bool) {
         motionConfig.isMotionEnabled = enabled && isSensorAvailable
         if !motionConfig.isMotionEnabled { isCalibrationReady = false }
+        persist()
         updateMotionSampling()
     }
 
     func setSensitivity(_ value: Double) {
         motionConfig.sensitivity = TiltInputMapper.Configuration(sensitivity: value).sensitivity
+        persist()
     }
 
     func calibrate() {
@@ -77,7 +131,7 @@ final class GameController {
         }
     }
 
-    // ponytail: calibration and sensitivity reset on relaunch; issue #6 persists settings.
+    // ponytail: calibration resets on relaunch; recalibrate for the current device posture.
 
     var course: Course { session.course }
     var simulation: MarbleSimulation { session.simulation }
@@ -106,7 +160,10 @@ final class GameController {
     func advance(seconds: Double, steering: Point) {
         let wasFinished = session.isFinished
         session.update(seconds: seconds, steering: steering)
-        if !wasFinished && session.isFinished { updateMotionSampling() }
+        if !wasFinished && session.isFinished {
+            persist()
+            updateMotionSampling()
+        }
     }
 
     func togglePause() {
