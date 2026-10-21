@@ -191,7 +191,7 @@ struct ContentView: View {
 
     private var dataForm: some View {
         Form {
-            Section("Your data") {
+            Section {
                 Button("Export JSON") {
                     if let data = game.exportData {
                         exportDocument = SaveDocument(data: data)
@@ -203,6 +203,8 @@ struct ContentView: View {
                     .accessibilityIdentifier("data.import")
                 Button("Delete all local data", role: .destructive) { confirmingDelete = true }
                     .accessibilityIdentifier("data.delete")
+            } header: {
+                Text("Your data")
             } footer: {
                 Text("Best times and tilt preferences stay on this device. Import replaces them after confirmation. Deletion cannot be undone.")
             }
