@@ -1,10 +1,32 @@
 import SwiftUI
 import SpriteKit
+import UniformTypeIdentifiers
 import TiltTrailKit
+
+private struct SaveDocument: FileDocument {
+    static var readableContentTypes: [UTType] { [.json] }
+    var data: Data
+
+    init(data: Data) { self.data = data }
+    init(configuration: ReadConfiguration) throws {
+        guard let data = configuration.file.regularFileContents else { throw SaveError.invalidData }
+        self.data = data
+    }
+    func fileWrapper(configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: data)
+    }
+}
 
 struct ContentView: View {
     @State private var game = GameController(course: TrailCourses.all[0])
     @State private var showingTiltSettings = false
+    @State private var showingData = false
+    @State private var showingExport = false
+    @State private var showingImport = false
+    @State private var importCandidate: Data?
+    @State private var confirmingDelete = false
+    @State private var dataError: String?
+    @State private var exportDocument: SaveDocument?
 
     var body: some View {
         GeometryReader { geometry in
@@ -56,9 +78,16 @@ struct ContentView: View {
                             .accessibilityLabel("Tilt settings")
                             .accessibilityValue(game.motionConfig.isMotionEnabled ? "On" : "Off")
                             .accessibilityIdentifier("motion.settings")
-                            .sheet(isPresented: $showingTiltSettings) {
-                                tiltSettings
+                            .sheet(isPresented: $showingTiltSettings) { tiltSettings }
+                            Button {
+                                showingData = true
+                            } label: {
+                                Image(systemName: "externaldrive")
+                                    .frame(minWidth: 44, minHeight: 44)
                             }
+                            .accessibilityLabel("Local data")
+                            .accessibilityIdentifier("data.settings")
+                            .sheet(isPresented: $showingData) { dataSettings }
                         }
 
                         HStack(spacing: 12) {
@@ -92,6 +121,78 @@ struct ContentView: View {
                 .onAppear { game.appear() }
                 .onDisappear { game.disappear() }
             }
+        }
+    }
+
+    private var dataSettings: some View {
+        NavigationStack {
+            Form {
+                Section("Your data") {
+                    Button("Export JSON") {
+                        if let data = game.exportData {
+                            exportDocument = SaveDocument(data: data)
+                            showingExport = true
+                        } else { dataError = "Could not prepare export." }
+                    }
+                    .accessibilityIdentifier("data.export")
+                    Button("Import JSON") { showingImport = true }
+                        .accessibilityIdentifier("data.import")
+                    Button("Delete all local data", role: .destructive) { confirmingDelete = true }
+                        .accessibilityIdentifier("data.delete")
+                } footer: {
+                    Text("Best times and tilt preferences stay on this device. Import replaces them after confirmation. Deletion cannot be undone.")
+                }
+                if let warning = game.storageError {
+                    Text(warning).foregroundStyle(.red)
+                        .accessibilityIdentifier("data.storageError")
+                }
+            }
+            .navigationTitle("Local data")
+            .toolbar { ToolbarItem(placement: .confirmationAction) {
+                Button("Done") { showingData = false }
+            } }
+            .fileExporter(isPresented: $showingExport, document: exportDocument,
+                          contentType: .json, defaultFilename: "TiltTrail-save") { result in
+                if case .failure(let error) = result { dataError = error.localizedDescription }
+            }
+            .fileImporter(isPresented: $showingImport, allowedContentTypes: [.json]) { result in
+                do {
+                    let url = try result.get()
+                    guard url.startAccessingSecurityScopedResource() else {
+                        throw SaveError.invalidData
+                    }
+                    defer { url.stopAccessingSecurityScopedResource() }
+                    let bytes = try Data(contentsOf: url)
+                    _ = try LocalSave.decode(bytes)
+                    importCandidate = bytes
+                } catch { dataError = error.localizedDescription }
+            }
+            .confirmationDialog("Replace existing local times and settings?", isPresented: Binding(
+                get: { importCandidate != nil },
+                set: { if !$0 { importCandidate = nil } }
+            ), titleVisibility: .visible) {
+                Button("Replace data", role: .destructive) {
+                    guard let data = importCandidate else { return }
+                    do { try game.importSave(data) }
+                    catch { dataError = error.localizedDescription }
+                    importCandidate = nil
+                }
+                Button("Cancel", role: .cancel) { importCandidate = nil }
+            }
+            .confirmationDialog("Delete all local times and settings?", isPresented: $confirmingDelete,
+                                titleVisibility: .visible) {
+                Button("Delete all data", role: .destructive) {
+                    do { try game.deleteAll() }
+                    catch { dataError = error.localizedDescription }
+                }
+                Button("Cancel", role: .cancel) {}
+            }
+            .alert("Local data error", isPresented: Binding(
+                get: { dataError != nil },
+                set: { if !$0 { dataError = nil } }
+            )) {
+                Button("OK") { dataError = nil }
+            } message: { Text(dataError ?? "") }
         }
     }
 

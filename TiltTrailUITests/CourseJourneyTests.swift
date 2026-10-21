@@ -16,6 +16,19 @@ final class CourseJourneyTests: XCTestCase {
         XCTAssertTrue(app.otherElements["course.viewport"].exists)
     }
 
+    func testDataSheetSurfacesExportImportAndDelete() {
+        let app = XCUIApplication()
+        app.launch()
+        let dataButton = app.buttons["data.settings"]
+        XCTAssertTrue(dataButton.waitForExistence(timeout: 15))
+        dataButton.tap()
+        XCTAssertTrue(app.buttons["data.export"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["data.import"].exists)
+        XCTAssertTrue(app.buttons["data.delete"].exists)
+        app.buttons["Done"].tap()
+        XCTAssertTrue(app.otherElements["course.viewport"].exists)
+    }
+
     func testTouchCompletesOriginalCourse() throws {
         let app = XCUIApplication()
         app.launch()
