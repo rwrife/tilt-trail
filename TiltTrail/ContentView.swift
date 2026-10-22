@@ -35,9 +35,11 @@ struct ContentView: View {
                     SpriteView(scene: game.scene)
                         .frame(height: layout.course.height)
                         .accessibilityIdentifier("course.viewport")
-                        .accessibilityLabel("Course \(game.course.id)")
+                        .accessibilityLabel("Course \(game.course.id), \(game.checkpointText)")
+                        .accessibilityHint("Drag on the course to steer the marble; tilt can be enabled in settings")
                         .accessibilityValue(game.marbleAccessibilityValue)
 
+                    ScrollView {
                     VStack(spacing: 8) {
                         Picker("Course", selection: Binding(
                             get: { game.course.id },
@@ -51,7 +53,7 @@ struct ContentView: View {
                                 Text(course.id).tag(course.id)
                             }
                         }
-                        .pickerStyle(.segmented)
+                        .pickerStyle(.menu)
                         .accessibilityIdentifier("course.picker")
 
                         HStack {
@@ -77,6 +79,7 @@ struct ContentView: View {
                             }
                             .accessibilityLabel("Tilt settings")
                             .accessibilityValue(game.motionConfig.isMotionEnabled ? "On" : "Off")
+                            .accessibilityHint("Opens tilt calibration and sensitivity controls")
                             .accessibilityIdentifier("motion.settings")
                             .sheet(isPresented: $showingTiltSettings) { tiltSettings }
                             Button {
@@ -86,6 +89,7 @@ struct ContentView: View {
                                     .frame(minWidth: 44, minHeight: 44)
                             }
                             .accessibilityLabel("Local data")
+                            .accessibilityHint("Exports, imports, or clears local records")
                             .accessibilityIdentifier("data.settings")
                             .sheet(isPresented: $showingData) { dataSettings }
                         }
@@ -96,25 +100,33 @@ struct ContentView: View {
                             }
                             .buttonStyle(.borderedProminent)
                             .accessibilityIdentifier("game.pause")
+                            .accessibilityLabel(game.isPaused ? "Resume run" : "Pause run")
                             .disabled(game.isFinished)
+                            .frame(minHeight: 44)
 
                             Button("Retry") {
                                 game.retry()
                             }
                             .buttonStyle(.bordered)
                             .accessibilityIdentifier("game.retry")
+                            .accessibilityLabel("Retry course from start")
+                            .frame(minHeight: 44)
 
                             Button("Checkpoint") {
                                 game.restartFromCheckpoint()
                             }
                             .buttonStyle(.bordered)
                             .accessibilityIdentifier("game.checkpoint")
+                            .accessibilityLabel("Restart from last reached checkpoint")
                             .disabled(game.isFinished)
+                            .frame(minHeight: 44)
                         }
 
                     }
                     .padding(.horizontal, 16)
                     .frame(maxWidth: .infinity)
+                    .frame(minHeight: layout.controls.height)
+                    }
                     .frame(height: layout.controls.height)
                     .background(.ultraThinMaterial)
                 }

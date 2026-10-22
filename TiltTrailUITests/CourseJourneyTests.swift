@@ -3,6 +3,22 @@ import XCTest
 /// Real touch journey through Switchback. Steers from live viewport telemetry, exactly like a
 /// player: XCUICoordinate nudges are the only input; nothing teleports the marble.
 final class CourseJourneyTests: XCTestCase {
+    func testAccessibleControlsAtLargeTextSize() {
+        let app = XCUIApplication()
+        app.launchArguments += ["-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL"]
+        app.launchEnvironment["UIPreferredContentSizeCategoryName"] = "UICTContentSizeCategoryAccessibilityXXXL"
+        app.launch()
+        let viewport = app.otherElements["course.viewport"]
+        XCTAssertTrue(viewport.waitForExistence(timeout: 15))
+        XCTAssertTrue(viewport.label.contains("Checkpoint 0 of 2"))
+        let retry = app.buttons["game.retry"]
+        XCTAssertTrue(retry.waitForExistence(timeout: 5))
+        XCTAssertEqual(retry.label, "Retry course from start")
+        XCTAssertGreaterThanOrEqual(retry.frame.height, 44)
+        XCTAssertTrue(app.buttons["motion.settings"].exists)
+        XCTAssertTrue(app.buttons["data.settings"].exists)
+    }
+
     func testMotionDefaultsOffAndTouchRemainsAvailable() {
         let app = XCUIApplication()
         app.launch()

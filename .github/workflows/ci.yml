@@ -6,6 +6,12 @@ on:
 permissions:
   contents: read
 jobs:
+  source-policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Device family, bundle ID and app icon gate
+        run: python3 scripts/check_project.py
   linux-package:
     runs-on: ubuntu-latest
     container:
