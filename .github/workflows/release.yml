@@ -1,0 +1,185 @@
+name: Release (TestFlight)
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'MAJOR.MINOR.PATCH for a manual TestFlight build'
+        required: true
+        default: '0.1.0'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  testflight:
+    runs-on: macos-26
+    timeout-minutes: 75
+    env:
+      BUNDLE_ID: com.infinityball.tilttrail
+      ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+      ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+      ASC_KEY_P8: ${{ secrets.ASC_KEY_P8 }}
+      ASC_TEAM_ID: ${{ secrets.ASC_TEAM_ID }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Select exact Xcode and iPhoneOS SDK
+        run: |
+          set -euo pipefail
+          dev=$(python3 Scripts/select_xcode.py --toolchain toolchain.json)
+          echo "DEVELOPER_DIR=$dev" >> "$GITHUB_ENV"
+          export DEVELOPER_DIR="$dev"
+          xcodebuild -version
+          sdk=$(xcrun --sdk iphoneos --show-sdk-version)
+          [ "$sdk" = '26.0' ] || { echo "::error::Pinned iPhoneOS SDK 26.0 unavailable (observed $sdk)"; exit 1; }
+          echo "Pinned iPhoneOS SDK $sdk: PASS"
+      - name: Ensure exact iOS device platform for archive
+        timeout-minutes: 20
+        run: |
+          set -euo pipefail
+          destinations=$(xcodebuild -project TiltTrail.xcodeproj -scheme TiltTrail -showdestinations)
+          if ! printf '%s\n' "$destinations" | grep 'Any iOS Device' | grep -qv 'error:'; then
+            xcodebuild -downloadPlatform iOS -architectureVariant universal
+          fi
+          destinations=$(xcodebuild -project TiltTrail.xcodeproj -scheme TiltTrail -showdestinations)
+          printf '%s\n' "$destinations" | grep 'Any iOS Device' | grep -qv 'error:' || { echo '::error::Pinned iOS device platform unavailable'; exit 1; }
+          echo 'Pinned iOS archive destination: PASS'
+      - name: Source and icon gate
+        run: |
+          set -euo pipefail
+          python3 scripts/check_project.py
+          bash scripts/check_zero_network.sh
+      - name: Resolve version and distinct build number
+        id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [ "$GITHUB_EVENT_NAME" = 'push' ]; then
+            tag="$GITHUB_REF_NAME"
+            version="${tag#v}"
+          else
+            version="$INPUT_VERSION"
+            tag="v$version"
+          fi
+          [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo '::error::Expected vMAJOR.MINOR.PATCH or MAJOR.MINOR.PATCH'; exit 1; }
+          [ "$GITHUB_RUN_ATTEMPT" -lt 100 ] || { echo '::error::Run attempt exceeds build-number allocation'; exit 1; }
+          build_number=$((GITHUB_RUN_NUMBER * 100 + GITHUB_RUN_ATTEMPT))
+          {
+            echo "tag=$tag"
+            echo "version=$version"
+            echo "build_number=$build_number"
+          } >> "$GITHUB_OUTPUT"
+          echo "Release version $version build $build_number"
+      - name: Stage ASC key securely
+        run: |
+          set -euo pipefail
+          for name in ASC_KEY_ID ASC_ISSUER_ID ASC_KEY_P8 ASC_TEAM_ID; do
+            [ -n "${!name:-}" ] || { echo "::error::Missing $name"; exit 1; }
+          done
+          umask 077
+          mkdir -p "$RUNNER_TEMP/asc"
+          printf '%s' "$ASC_KEY_P8" | sed 's/\\n/\n/g' > "$RUNNER_TEMP/asc/AuthKey.p8"
+          chmod 600 "$RUNNER_TEMP/asc/AuthKey.p8"
+          test -s "$RUNNER_TEMP/asc/AuthKey.p8"
+          echo "P8_PATH=$RUNNER_TEMP/asc/AuthKey.p8" >> "$GITHUB_ENV"
+      - name: Archive signed iPhone app
+        timeout-minutes: 30
+        run: |
+          set -euo pipefail
+          xcodebuild -project TiltTrail.xcodeproj -scheme TiltTrail \
+            -configuration Release -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/TiltTrail.xcarchive" \
+            MARKETING_VERSION="${{ steps.version.outputs.version }}" \
+            CURRENT_PROJECT_VERSION="${{ steps.version.outputs.build_number }}" \
+            DEVELOPMENT_TEAM="$ASC_TEAM_ID" CODE_SIGN_STYLE=Automatic \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$P8_PATH" -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID" archive
+      - name: Assert archive identity, family, signing and icon
+        run: |
+          set -euo pipefail
+          app="$RUNNER_TEMP/TiltTrail.xcarchive/Products/Applications/TiltTrail.app"
+          plist="$app/Info.plist"
+          [ -f "$plist" ]
+          [ "$(plutil -extract CFBundleIdentifier raw -o - "$plist")" = "$BUNDLE_ID" ]
+          family=$(plutil -extract UIDeviceFamily json -o - "$plist")
+          [ "$family" = '[1]' ] || { echo "::error::UIDeviceFamily expected [1], got $family"; exit 1; }
+          [ -f "$app/Assets.car" ]
+          icons=("$app"/AppIcon*.png)
+          [ -f "${icons[0]}" ] || { echo '::error::Archived icon rasters missing'; exit 1; }
+          codesign --verify --deep --strict "$app"
+          echo "Archived bundle ID $BUNDLE_ID; UIDeviceFamily [1]; signed icon assets: PASS"
+      - name: Export signed IPA and upload via ASC API key
+        timeout-minutes: 20
+        run: |
+          set -euo pipefail
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0"><dict>
+            <key>destination</key><string>upload</string>
+            <key>method</key><string>app-store-connect</string>
+            <key>uploadMethod</key><string>app-store-connect</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+            <key>teamID</key><string>__TEAM__</string>
+          </dict></plist>
+          PLIST
+          sed -i '' "s/__TEAM__/$ASC_TEAM_ID/" "$RUNNER_TEMP/ExportOptions.plist"
+          plutil -lint "$RUNNER_TEMP/ExportOptions.plist"
+          xcodebuild -exportArchive -archivePath "$RUNNER_TEMP/TiltTrail.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath "$RUNNER_TEMP/ipa" -allowProvisioningUpdates \
+            -authenticationKeyPath "$P8_PATH" -authenticationKeyID "$ASC_KEY_ID" \
+            -authenticationKeyIssuerID "$ASC_ISSUER_ID"
+      - name: Wait for processed ASC build
+        timeout-minutes: 32
+        run: |
+          set -euo pipefail
+          token() { ruby scripts/asc_jwt.rb "$P8_PATH" "$ASC_KEY_ID" "$ASC_ISSUER_ID"; }
+          app=$(curl -g -fsS -H "Authorization: Bearer $(token)" \
+            "https://api.appstoreconnect.apple.com/v1/apps?filter[bundleId]=$BUNDLE_ID&limit=1")
+          app_id=$(jq -er '.data[0].id' <<< "$app") || { echo '::error::ASC app record missing'; exit 1; }
+          build_number='${{ steps.version.outputs.build_number }}'
+          version='${{ steps.version.outputs.version }}'
+          for i in $(seq 1 60); do
+            response=$(curl -g -fsS -H "Authorization: Bearer $(token)" \
+              "https://api.appstoreconnect.apple.com/v1/builds?filter[app]=$app_id&filter[version]=$build_number&filter[preReleaseVersion.version]=$version&sort=-uploadedDate&limit=10")
+            entry=$(jq -rc --arg b "$build_number" '[.data[] | select(.attributes.version == $b) | {id: .id, state: .attributes.processingState}] | first // empty' <<< "$response")
+            if [ -n "$entry" ]; then
+              id=$(jq -r .id <<< "$entry")
+              state=$(jq -r .state <<< "$entry")
+              echo "ASC build id=$id processingState=$state run=$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID"
+              case "$state" in
+                VALID|COMPLETE) echo "Processed TestFlight build: $id"; exit 0 ;;
+                FAILED|INVALID) echo "::error::ASC processing failed: $state"; exit 1 ;;
+              esac
+            else
+              echo "Poll $i: build $build_number not indexed"
+            fi
+            sleep 30
+          done
+          echo '::error::ASC processing timed out'; exit 1
+      - name: Create GitHub release for tag after processed build
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          gh release create '${{ steps.version.outputs.tag }}' --generate-notes \
+            --title 'Tilt Trail ${{ steps.version.outputs.tag }}'
+      - name: Remove ASC key
+        if: always()
+        run: |
+          if [ -n "${P8_PATH:-}" ]; then
+            rm -f "$P8_PATH"
+          fi
